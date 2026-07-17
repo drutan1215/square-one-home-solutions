@@ -37,18 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Hero video scroll-scrub ──
-  // Above the 1024px breakpoint the hero is pinned (position: sticky) and
+  // The hero is pinned (position: sticky) at every breakpoint, and
   // progress is driven by how far the page has scrolled through the tall
-  // .hero-scroll-wrap spacer. Below it the hero sits in normal document
-  // flow (no pin, no spacer), so progress instead comes from the video
-  // card's own position as it travels through the viewport. Either way
-  // the video is scroll-driven, never autoplaying on its own.
+  // .hero-scroll-wrap spacer behind it — same mechanic on mobile as
+  // desktop, just a shorter spacer (see the 1024/768px CSS breakpoints).
   const heroVideo = document.querySelector('.hero-bg-video');
   const heroWrap = document.querySelector('.hero-scroll-wrap');
-  const heroFrame = document.querySelector('.hero-media-frame');
-  const pinnedQuery = window.matchMedia('(min-width: 1025px)');
 
-  if (heroVideo && heroFrame) {
+  if (heroVideo && heroWrap) {
     let duration = 0;
     let pendingTime = null;
     let seekInFlight = false;
@@ -88,18 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const computeTarget = () => {
       if (!duration) return;
-      let progress;
-      if (pinnedQuery.matches && heroWrap) {
-        const rect = heroWrap.getBoundingClientRect();
-        const scrollable = rect.height - window.innerHeight;
-        if (scrollable <= 0) return;
-        progress = (-rect.top) / scrollable;
-      } else {
-        const rect = heroFrame.getBoundingClientRect();
-        const travel = window.innerHeight + rect.height;
-        progress = (window.innerHeight - rect.top) / travel;
-      }
-      pendingTime = Math.min(Math.max(progress, 0), 1) * duration;
+      const rect = heroWrap.getBoundingClientRect();
+      const scrollable = rect.height - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = Math.min(Math.max((-rect.top) / scrollable, 0), 1);
+      pendingTime = progress * duration;
       applyPendingSeek();
     };
 
