@@ -37,40 +37,64 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Hero video scroll-scrub ──
+  // Only enabled on viewports wide enough for the sticky two-column hero
+  // (see the 1024px breakpoint in style.css) — below that the video just
+  // autoplays/loops normally via its HTML attributes.
   const heroVideo = document.querySelector('.hero-bg-video');
   const heroWrap = document.querySelector('.hero-scroll-wrap');
-  if (heroVideo && heroWrap) {
+  const scrubEnabled = window.matchMedia('(min-width: 1025px)').matches;
+
+  if (heroVideo && heroWrap && scrubEnabled) {
     let duration = 0;
-    let ticking = false;
+    let pendingTime = null;
+    let seekInFlight = false;
 
     const primeVideo = () => {
       duration = heroVideo.duration || 0;
-      // iOS Safari won't render seeked frames until the video has played once.
+      // Take manual control: stop the native autoplay/loop once we know
+      // scrubbing is active, and prime iOS Safari so seeked frames render
+      // (it won't paint a seek until the video has played at least once).
       heroVideo.play().then(() => heroVideo.pause()).catch(() => {});
     };
     heroVideo.addEventListener('loadedmetadata', primeVideo);
     if (heroVideo.readyState >= 1) primeVideo();
 
-    const updateVideoScrub = () => {
-      ticking = false;
+    // Never issue a new seek while one is still resolving — queuing seeks
+    // faster than the decoder can service them is what caused the jank.
+    // Instead we track only the latest desired time and apply it the
+    // moment the previous seek finishes.
+    const applyPendingSeek = () => {
+      if (pendingTime === null || seekInFlight) return;
+      seekInFlight = true;
+      heroVideo.currentTime = pendingTime;
+      pendingTime = null;
+    };
+    heroVideo.addEventListener('seeked', () => {
+      seekInFlight = false;
+      applyPendingSeek();
+    });
+
+    const computeTarget = () => {
       if (!duration) return;
       const rect = heroWrap.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       if (scrollable <= 0) return;
       const progress = Math.min(Math.max(-rect.top / scrollable, 0), 1);
-      const targetTime = progress * duration;
-      if (Math.abs(heroVideo.currentTime - targetTime) > 0.04) {
-        heroVideo.currentTime = targetTime;
-      }
+      pendingTime = progress * duration;
+      applyPendingSeek();
     };
 
+    let ticking = false;
     window.addEventListener('scroll', () => {
       if (!ticking) {
-        requestAnimationFrame(updateVideoScrub);
         ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          computeTarget();
+        });
       }
     }, { passive: true });
-    window.addEventListener('load', updateVideoScrub);
+    window.addEventListener('load', computeTarget);
   }
 
   // ── Scroll fade-in ──

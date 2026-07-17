@@ -249,7 +249,7 @@ p  { line-height: 1.75; color: var(--text-muted); }
 /* ── Hero ── */
 .hero-scroll-wrap {
   position: relative;
-  height: 240vh;
+  height: 200vh;
 }
 .hero {
   position: sticky;
@@ -259,32 +259,29 @@ p  { line-height: 1.75; color: var(--text-muted); }
   display: flex;
   align-items: center;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
 }
-.hero-bg-video {
+.hero::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 40%;
-  background: var(--navy);
+  top: -30%;
+  left: -10%;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: rgba(196,134,42,.07);
+  pointer-events: none;
 }
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    rgba(11,30,61,.88) 0%,
-    rgba(11,30,61,.6) 60%,
-    rgba(11,30,61,.25) 100%
-  );
-}
-.hero-content {
+.hero-grid {
   position: relative;
   z-index: 1;
-  max-width: 700px;
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  align-items: center;
+  gap: 56px;
+  width: 100%;
   padding-top: var(--header-h);
 }
+.hero-content { max-width: 620px; }
 .hero-badge {
   display: inline-flex;
   align-items: center;
@@ -309,7 +306,6 @@ p  { line-height: 1.75; color: var(--text-muted); }
 .hero h1 {
   color: var(--white);
   margin-bottom: 24px;
-  text-shadow: 0 2px 16px rgba(0,0,0,.3);
 }
 .hero h1 span { color: var(--gold-light); }
 .hero-desc {
@@ -340,6 +336,29 @@ p  { line-height: 1.75; color: var(--text-muted); }
   text-transform: uppercase;
   letter-spacing: .08em;
   margin-top: 4px;
+}
+
+.hero-media {
+  display: flex;
+  justify-content: center;
+}
+.hero-media-frame {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 834 / 1112;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.hero-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ── Services ── */
@@ -792,6 +811,23 @@ p  { line-height: 1.75; color: var(--text-muted); }
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
+  /* Sticky scroll-scrub only makes sense with room to spare; below this
+     breakpoint the hero reflows to a normal stacked section and the video
+     just autoplays/loops (see main.js matchMedia check). */
+  .hero-scroll-wrap { height: auto; }
+  .hero {
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: auto;
+    padding: calc(var(--header-h) + 56px) 0 64px;
+  }
+  .hero-grid { grid-template-columns: 1fr; gap: 48px; text-align: center; }
+  .hero-content { max-width: 640px; margin: 0 auto; }
+  .hero-actions { justify-content: center; }
+  .hero-stats { justify-content: center; }
+  .hero-media-frame { max-width: 320px; margin: 0 auto; }
+
   .about-strip { grid-template-columns: 1fr; }
   .about-strip-image { min-height: 360px; }
   .about-strip-content { padding: 60px 48px; }
@@ -807,7 +843,6 @@ p  { line-height: 1.75; color: var(--text-muted); }
   .section { padding: 64px 0; }
   .nav { display: none; }
   .hamburger { display: flex; }
-  .hero-scroll-wrap { height: 180vh; }
   .hero-stats { gap: 28px; }
   .stats-row { grid-template-columns: 1fr; gap: 20px; }
   .gallery-grid { grid-template-columns: 1fr 1fr; }
