@@ -53,15 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingTime = null;
     let seekInFlight = false;
 
+    // Mobile browsers frequently refuse to fetch even metadata for a
+    // <video> until playback is requested — with no `autoplay` attribute
+    // and no user gesture, `loadedmetadata` can simply never fire, which
+    // left duration at 0 and the scrub silently doing nothing. Calling
+    // play() immediately (allowed for muted+playsinline without a
+    // gesture) forces the load to start; pausing right after also
+    // primes iOS Safari to paint seeked frames rather than a blank one.
     const primeVideo = () => {
-      duration = heroVideo.duration || 0;
-      // iOS Safari won't paint a seeked frame until the video has played
-      // at least once, so kick it off silently and immediately pause —
-      // muted + playsinline lets this happen without a user gesture.
-      heroVideo.play().then(() => heroVideo.pause()).catch(() => {});
+      const attempt = heroVideo.play();
+      if (attempt !== undefined) attempt.then(() => heroVideo.pause()).catch(() => {});
     };
-    heroVideo.addEventListener('loadedmetadata', primeVideo);
-    if (heroVideo.readyState >= 1) primeVideo();
+    heroVideo.addEventListener('loadedmetadata', () => {
+      duration = heroVideo.duration || 0;
+      computeTarget();
+    });
+    primeVideo();
+    if (heroVideo.readyState >= 1) duration = heroVideo.duration || 0;
 
     // Never issue a new seek while one is still resolving — queuing seeks
     // faster than the decoder can service them is what caused the jank.
