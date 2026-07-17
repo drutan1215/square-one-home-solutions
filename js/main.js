@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let duration = 0;
     let pendingTime = null;
     let seekInFlight = false;
+    let seekWatchdog = null;
 
     // Mobile browsers frequently refuse to fetch even metadata for a
     // <video> until playback is requested — with no `autoplay` attribute
@@ -76,8 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
       seekInFlight = true;
       heroVideo.currentTime = pendingTime;
       pendingTime = null;
+      // Some browsers never fire 'seeked' when the target doesn't
+      // meaningfully differ from the current position — most notably
+      // the very first seek-to-0 on page load, since currentTime already
+      // starts at 0. Without this, that single missed event permanently
+      // wedges seekInFlight and silently kills scrubbing for the rest of
+      // the page's life. This watchdog self-heals if 'seeked' goes quiet.
+      clearTimeout(seekWatchdog);
+      seekWatchdog = setTimeout(() => {
+        seekInFlight = false;
+        applyPendingSeek();
+      }, 250);
     };
     heroVideo.addEventListener('seeked', () => {
+      clearTimeout(seekWatchdog);
       seekInFlight = false;
       applyPendingSeek();
     });
@@ -88,7 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const scrollable = rect.height - window.innerHeight;
       if (scrollable <= 0) return;
       const progress = Math.min(Math.max((-rect.top) / scrollable, 0), 1);
-      pendingTime = progress * duration;
+      // Seeking to exactly `duration` has no frame to land on in most
+      // browsers and renders blank (showing the frame's black background
+      // through it), so keep the target just shy of the true end.
+      pendingTime = progress * Math.max(duration - 0.15, 0);
       applyPendingSeek();
     };
 
