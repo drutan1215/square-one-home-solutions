@@ -247,23 +247,28 @@ p  { line-height: 1.75; color: var(--text-muted); }
 }
 
 /* ── Hero ── */
-.hero {
+.hero-scroll-wrap {
   position: relative;
+  height: 240vh;
+}
+.hero {
+  position: sticky;
+  top: 0;
+  height: 100vh;
   min-height: 100vh;
   display: flex;
   align-items: center;
   overflow: hidden;
 }
-.hero-bg {
+.hero-bg-video {
   position: absolute;
   inset: 0;
-  background-image: url('../images/hero-main.jpg');
-  background-size: cover;
-  background-position: center 30%;
-  transform: scale(1.05);
-  transition: transform 8s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  background: var(--navy);
 }
-.hero-bg.loaded { transform: scale(1); }
 .hero-overlay {
   position: absolute;
   inset: 0;
@@ -802,6 +807,7 @@ p  { line-height: 1.75; color: var(--text-muted); }
   .section { padding: 64px 0; }
   .nav { display: none; }
   .hamburger { display: flex; }
+  .hero-scroll-wrap { height: 180vh; }
   .hero-stats { gap: 28px; }
   .stats-row { grid-template-columns: 1fr; gap: 20px; }
   .gallery-grid { grid-template-columns: 1fr 1fr; }

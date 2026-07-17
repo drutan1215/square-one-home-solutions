@@ -36,14 +36,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Hero parallax ──
-  const heroBg = document.querySelector('.hero-bg');
-  if (heroBg) {
-    heroBg.classList.add('loaded');
+  // ── Hero video scroll-scrub ──
+  const heroVideo = document.querySelector('.hero-bg-video');
+  const heroWrap = document.querySelector('.hero-scroll-wrap');
+  if (heroVideo && heroWrap) {
+    let duration = 0;
+    let ticking = false;
+
+    const primeVideo = () => {
+      duration = heroVideo.duration || 0;
+      // iOS Safari won't render seeked frames until the video has played once.
+      heroVideo.play().then(() => heroVideo.pause()).catch(() => {});
+    };
+    heroVideo.addEventListener('loadedmetadata', primeVideo);
+    if (heroVideo.readyState >= 1) primeVideo();
+
+    const updateVideoScrub = () => {
+      ticking = false;
+      if (!duration) return;
+      const rect = heroWrap.getBoundingClientRect();
+      const scrollable = rect.height - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = Math.min(Math.max(-rect.top / scrollable, 0), 1);
+      const targetTime = progress * duration;
+      if (Math.abs(heroVideo.currentTime - targetTime) > 0.04) {
+        heroVideo.currentTime = targetTime;
+      }
+    };
+
     window.addEventListener('scroll', () => {
-      const y = window.scrollY;
-      heroBg.style.transform = `translateY(${y * 0.3}px)`;
+      if (!ticking) {
+        requestAnimationFrame(updateVideoScrub);
+        ticking = true;
+      }
     }, { passive: true });
+    window.addEventListener('load', updateVideoScrub);
   }
 
   // ── Scroll fade-in ──
