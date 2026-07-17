@@ -37,23 +37,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Hero video scroll-scrub ──
-  // Only enabled on viewports wide enough for the sticky two-column hero
-  // (see the 1024px breakpoint in style.css) — below that the video just
-  // autoplays/loops normally via its HTML attributes.
+  // Above the 1024px breakpoint the hero is pinned (position: sticky) and
+  // progress is driven by how far the page has scrolled through the tall
+  // .hero-scroll-wrap spacer. Below it the hero sits in normal document
+  // flow (no pin, no spacer), so progress instead comes from the video
+  // card's own position as it travels through the viewport. Either way
+  // the video is scroll-driven, never autoplaying on its own.
   const heroVideo = document.querySelector('.hero-bg-video');
   const heroWrap = document.querySelector('.hero-scroll-wrap');
-  const scrubEnabled = window.matchMedia('(min-width: 1025px)').matches;
+  const heroFrame = document.querySelector('.hero-media-frame');
+  const pinnedQuery = window.matchMedia('(min-width: 1025px)');
 
-  if (heroVideo && heroWrap && scrubEnabled) {
+  if (heroVideo && heroFrame) {
     let duration = 0;
     let pendingTime = null;
     let seekInFlight = false;
 
     const primeVideo = () => {
       duration = heroVideo.duration || 0;
-      // Take manual control: stop the native autoplay/loop once we know
-      // scrubbing is active, and prime iOS Safari so seeked frames render
-      // (it won't paint a seek until the video has played at least once).
+      // iOS Safari won't paint a seeked frame until the video has played
+      // at least once, so kick it off silently and immediately pause —
+      // muted + playsinline lets this happen without a user gesture.
       heroVideo.play().then(() => heroVideo.pause()).catch(() => {});
     };
     heroVideo.addEventListener('loadedmetadata', primeVideo);
@@ -76,11 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const computeTarget = () => {
       if (!duration) return;
-      const rect = heroWrap.getBoundingClientRect();
-      const scrollable = rect.height - window.innerHeight;
-      if (scrollable <= 0) return;
-      const progress = Math.min(Math.max(-rect.top / scrollable, 0), 1);
-      pendingTime = progress * duration;
+      let progress;
+      if (pinnedQuery.matches && heroWrap) {
+        const rect = heroWrap.getBoundingClientRect();
+        const scrollable = rect.height - window.innerHeight;
+        if (scrollable <= 0) return;
+        progress = (-rect.top) / scrollable;
+      } else {
+        const rect = heroFrame.getBoundingClientRect();
+        const travel = window.innerHeight + rect.height;
+        progress = (window.innerHeight - rect.top) / travel;
+      }
+      pendingTime = Math.min(Math.max(progress, 0), 1) * duration;
       applyPendingSeek();
     };
 
@@ -94,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     }, { passive: true });
+    window.addEventListener('resize', computeTarget);
     window.addEventListener('load', computeTarget);
   }
 
